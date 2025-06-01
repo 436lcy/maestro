@@ -1,0 +1,53 @@
+name: Build and Test with Maestro
+
+on:
+  pull_request:
+    branches:
+      - main  # 当 PR 推送到 main 分支时触发
+
+jobs:
+  build:
+    runs-on: macOS-latest  # 在 macOS 环境下运行
+
+    steps:
+      # 步骤 1: 拉取代码
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # 步骤 2: 安装 CocoaPods 依赖（如果你的项目有 CocoaPods）
+      - name: Install dependencies with CocoaPods
+        run: |
+          gem install cocoapods
+          pod install
+
+      # 步骤 3: 设置 Xcode 16.2 作为默认版本
+      - name: Set Xcode 16.2
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          xcodebuild -version
+
+      # 步骤 4: 构建项目
+      - name: Build the app
+        run: |
+          xcodebuild build -scheme 'MyApp' -configuration Debug -project 'MyApp.xcodeproj' -destination 'generic/platform=iOS Simulator' CONFIGURATION_BUILD_DIR=$PWD/build
+
+      # 步骤 5: 运行 UI 测试
+      - name: Run UI Tests
+        run: |
+          xcodebuild test -scheme 'MyApp' -destination 'platform=iOS Simulator,name=iPhone 14' -only-testing:MyAppUITests
+
+      # 步骤 6: Maestro 身份验证
+      - name: Maestro authentication
+        run: |
+          echo ${{ secrets.MAESTRO_API_KEY }} > maestro_api_key.txt
+          maestro-cli auth --api-key $(cat maestro_api_key.txt)
+
+      # 步骤 7: 上传构建到 Maestro Cloud
+      - name: Upload to Maestro Cloud
+        run: |
+          maestro-cli upload --app-name "MyApp" --device "iPhone 16" --build-directory $PWD/build
+
+      # 步骤 8: 触发 Maestro 测试
+      - name: Trigger Maestro Test
+        run: |
+          maestro-cli test --app-name "MyApp" --device "iPhone 16" --build-directory $PWD/build
