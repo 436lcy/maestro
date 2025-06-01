@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - develop  # 根据你的需求设置需要触发的分支
 
 jobs:
   build:
@@ -21,23 +20,13 @@ jobs:
           sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
           xcodebuild -version
 
-      # 构建项目
+      # 构建项目，确保项目文件存在并正确构建
       - name: Build the app
         run: |
+          # 确保指定的 .xcodeproj 文件路径正确
           xcodebuild build -scheme 'MyApp' -configuration Debug -project 'MyApp.xcodeproj' -destination 'generic/platform=iOS Simulator' CONFIGURATION_BUILD_DIR=$PWD/build
 
-      # Maestro身份认证
-      - name: Maestro authentication
+      # 启动应用并执行基本的测试
+      - name: Run tests
         run: |
-          echo ${{ secrets.MAESTRO_API_KEY }} > maestro_api_key.txt
-          maestro-cli auth --api-key $(cat maestro_api_key.txt)
-
-      # 上传到 Maestro Cloud
-      - name: Upload to Maestro Cloud
-        run: |
-          maestro-cli upload --app-name "MyApp" --device "iPhone 16" --build-directory $PWD/build
-
-      # 触发 Maestro 测试
-      - name: Trigger Maestro Test
-        run: |
-          maestro-cli test --app-name "MyApp" --device "iPhone 16" --build-directory $PWD/build
+          xcodebuild test -scheme 'MyApp' -configuration Debug -project 'MyApp.xcodeproj' -destination 'platform=iOS Simulator,name=iPhone 13'
