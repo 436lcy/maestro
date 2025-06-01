@@ -1,9 +1,10 @@
-name: Build and Test with Maestro
+name: Build and Test
 
 on:
   push:
     branches:
       - main
+      - develop  # 根据你的需求设置需要触发的分支
 
 jobs:
   build:
@@ -14,22 +15,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      # 安装 CocoaPods 依赖
-      - name: Install dependencies with CocoaPods
-        run: |
-          gem install cocoapods
-          pod install
-
       # 设置 Xcode 16.2 作为默认 Xcode 版本
       - name: Set Xcode 16.2
         run: |
           sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
           xcodebuild -version
 
-      # 构建项目，省略 build 目录设置
+      # 构建项目
       - name: Build the app
         run: |
-          xcodebuild build -scheme 'MyApp' -configuration Debug -project 'MyApp.xcodeproj' -destination 'generic/platform=iOS Simulator'
+          xcodebuild build -scheme 'MyApp' -configuration Debug -project 'MyApp.xcodeproj' -destination 'generic/platform=iOS Simulator' CONFIGURATION_BUILD_DIR=$PWD/build
 
       # Maestro身份认证
       - name: Maestro authentication
@@ -40,9 +35,9 @@ jobs:
       # 上传到 Maestro Cloud
       - name: Upload to Maestro Cloud
         run: |
-          maestro-cli upload --app-name "MyApp" --device "iPhone 16"
+          maestro-cli upload --app-name "MyApp" --device "iPhone 16" --build-directory $PWD/build
 
       # 触发 Maestro 测试
       - name: Trigger Maestro Test
         run: |
-          maestro-cli test --app-name "MyApp" --device "iPhone 16"
+          maestro-cli test --app-name "MyApp" --device "iPhone 16" --build-directory $PWD/build
